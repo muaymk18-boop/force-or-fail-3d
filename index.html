@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>⚡ FORCE OR FAIL 3D — เกมกฎของนิวตัน</title>
+<style>
+:root{color-scheme:dark;--bg:#080d1d;--cyan:#42e8f5;--pink:#ff4d9d;--yellow:#ffd166;--green:#54e39a;--red:#ff667d;--white:#f4f7ff;--panel:#111a31ee;--line:#34466e}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--white);font-family:Tahoma,"Noto Sans Thai",sans-serif;overflow:hidden}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.ui{position:fixed;left:0;right:0;padding:10px;box-sizing:border-box;pointer-events:none;max-width:760px;margin:auto}
+.ui>*{pointer-events:auto}#hud{top:0;padding-top:calc(10px + env(safe-area-inset-top,0px))}#bot{bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.row{display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between;margin-bottom:8px;font-weight:bold;font-size:.8rem}.row span{background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:4px 10px}
+#rn{color:var(--cyan)}#score{color:var(--yellow)}#tm{color:var(--yellow)}#tm.low{color:var(--red)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+#qt{margin:0;font-size:clamp(.95rem,3.6vw,1.2rem);line-height:1.55}#phys{margin-top:8px;color:var(--cyan);font-weight:bold;font-size:.85rem;text-align:center;text-shadow:0 0 8px #000}
+#ans{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button.ans{display:flex;gap:8px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);color:var(--white);border-radius:12px;padding:9px 10px;text-align:left;font:inherit;font-size:.85rem;line-height:1.4;cursor:pointer}
+button.ans:hover:not(:disabled){border-color:var(--cyan)}button.ans i{font-style:normal;font-weight:bold;color:var(--cyan);background:#2c3e60;border-radius:7px;min-width:24px;height:24px;display:grid;place-items:center}
+button.ans.ok{border-color:var(--green);background:#12382f}button.ans.no{border-color:var(--red);background:#421e32}
+#fb.good{border-color:var(--green)}#fb.bad{border-color:var(--red)}#fb p{margin:6px 0 10px;font-size:.88rem;line-height:1.6;color:#e0e8fb}
+button.pri{border:0;border-radius:12px;background:linear-gradient(90deg,var(--cyan),#77a9ff);color:#07101f;font:inherit;font-weight:bold;padding:11px 20px;cursor:pointer}
+.scr{position:fixed;inset:0;z-index:5;display:grid;place-items:center;padding:16px;overflow:auto;background:#080d1dcc}.scr .card{max-width:520px;width:100%;text-align:center;padding:22px}
+h1{margin:6px 0;font-size:clamp(2rem,9vw,3.2rem);color:var(--cyan);text-shadow:0 0 22px #42e8f566}.tag{color:var(--yellow);font-weight:bold}.scr ul{text-align:left;line-height:1.9;color:#d7e1f7;padding-left:20px}
+.big{font-size:3.6rem;font-weight:900;color:var(--yellow);margin:4px}.rl{text-align:left;font-size:.82rem;line-height:1.6;max-height:34vh;overflow:auto;margin:10px 0}.rl div{padding:7px 0;border-bottom:1px solid #2a3857}
+.hidden{display:none!important}
+@media(max-width:560px){#ans{gap:6px}button.ans{font-size:.78rem;padding:7px}}
+</style></head><body>
+<canvas id="c"></canvas>
+<div class="ui hidden" id="hud"><div class="row"><span id="rn"></span><span id="qc"></span><span>⭐ <b id="score">0</b></span><span id="tm"></span></div><div class="card" id="qbox"><h2 id="qt"></h2></div><div id="phys"></div></div>
+<div class="ui" id="bot"><div id="ans"></div><div id="fb" class="card hidden"><b id="fbt"></b><p id="fbe"></p><button class="pri" id="nx">ข้อต่อไป →</button></div></div>
+<div class="scr" id="start"><div class="card"><div style="font-size:2.4rem">⚡</div><h1>FORCE OR FAIL 3D</h1><div class="tag">คิดให้เป็น เล่นให้รอด</div>
+<ul><li>ขับรถเข็นแรงสูงพุ่งชนประตูคำตอบ A–D ในฉาก 3 มิติ</li><li>เลือกคำตอบจากปุ่ม คลิกประตูในฉาก หรือกด A–D / 1–4</li><li>ตอบถูก: ประตูแตก +10 คะแนน ตอบผิด: ชนแล้วเด้งกลับ</li><li>10 ข้อ • ข้อละ 20 วินาที • กฎการเคลื่อนที่ของนิวตัน ม.5</li></ul><button class="pri" id="sb">เริ่มเกม 🚀</button></div></div>
+<div class="scr hidden" id="result"><div class="card"><div class="tag">คะแนนรวม</div><div class="big" id="fs">0</div><h2 id="rt" style="margin:4px;color:var(--cyan)"></h2><p id="rx" style="color:#d7e1f7;line-height:1.6"></p><div class="rl" id="rl"></div><button class="pri" id="rb">เล่นอีกครั้ง 🔁</button></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const questions = [
+ {round:1,roundName:"ROUND 1: QUICK THINK",difficulty:"ง่าย",level:"easy",q:"รถโดยสารเบรกกะทันหัน ผู้โดยสารมีแนวโน้มเอนไปข้างหน้า เพราะเหตุใด?",opts:["ร่างกายพยายามคงสภาพการเคลื่อนที่เดิม","มีแรงลึกลับดึงตัวไปข้างหน้า","แรงโน้มถ่วงเพิ่มขึ้นทันที","รถออกแรงผลักผู้โดยสารไปข้างหน้า"],a:0,ex:"เป็นกฎการเคลื่อนที่ข้อที่ 1 ของนิวตัน หรือกฎความเฉื่อย ร่างกายผู้โดยสารมีแนวโน้มเคลื่อนที่ต่อไปข้างหน้า แม้รถจะชะลอความเร็วลง"},
+ {round:1,roundName:"ROUND 1: QUICK THINK",difficulty:"ง่าย",level:"easy",q:"ถ้าเราออกแรงผลักรถเข็นที่ว่างและรถเข็นที่บรรทุกของด้วยแรงเท่ากัน รถเข็นใดมีแนวโน้มเร่งได้มากกว่า?",opts:["รถเข็นที่บรรทุกของ","ทั้งสองเร่งเท่ากันเสมอ","รถเข็นที่ว่าง","บอกไม่ได้เพราะไม่มีแรงโน้มถ่วง"],a:2,ex:"ตามกฎข้อที่ 2 ของนิวตัน a = F/m เมื่อแรงเท่ากัน วัตถุที่มีมวลน้อยกว่าจะมีความเร่งมากกว่า หากแรงต้านใกล้เคียงกัน"},
+ {round:1,roundName:"ROUND 1: QUICK THINK",difficulty:"ง่าย",level:"easy",q:"ขณะเดินไปข้างหน้า เท้าของเราออกแรงผลักพื้นไปด้านหลัง แล้วอะไรช่วยให้เราเดินหน้าได้?",opts:["พื้นผลักเท้ากลับไปด้านหน้า","แรงเสียดทานหายไปทั้งหมด","แรงโน้มถ่วงผลักเราไปข้างหน้า","ไม่มีแรงกระทำต่อเท้า"],a:0,ex:"กฎข้อที่ 3 ของนิวตัน: เมื่อเท้าผลักพื้นไปด้านหลัง พื้นจะออกแรงตอบสนองผลักเท้าไปด้านหน้า ด้วยแรงขนาดเท่ากันแต่ทิศตรงข้าม"},
+ {round:1,roundName:"ROUND 1: QUICK THINK",difficulty:"ปานกลาง",level:"medium",q:"หนังสือวางนิ่งอยู่บนโต๊ะ แรงโน้มถ่วงดึงหนังสือลงและโต๊ะดันหนังสือขึ้น หนังสือจึงอยู่นิ่งเพราะอะไร?",opts:["ไม่มีแรงใดกระทำต่อหนังสือ","แรงทั้งสองเป็นคู่แรงกิริยา–ปฏิกิริยากัน","แรงลัพธ์ที่กระทำต่อหนังสือเป็นศูนย์","หนังสือไม่มีน้ำหนักเมื่ออยู่บนโต๊ะ"],a:2,ex:"แรงโน้มถ่วงและแรงปฏิกิริยาตั้งฉากจากโต๊ะกระทำต่อหนังสือในทิศตรงข้ามและสมดุลกัน จึงมีแรงลัพธ์เป็นศูนย์ หนังสืออยู่นิ่งตามกฎข้อที่ 1 ทั้งสองแรงไม่ใช่คู่กิริยา–ปฏิกิริยา เพราะกระทำต่อวัตถุชิ้นเดียวกัน"},
+ {round:2,roundName:"ROUND 2: REAL-LIFE MISSION",difficulty:"ปานกลาง",level:"medium",q:"นักเรียนสองคนผลักกล่องใบเดียวกันไปทางขวา คนหนึ่งผลักแรง 30 N อีกคนผลักแรง 20 N ไปทางซ้าย โดยไม่คิดแรงเสียดทาน กล่องจะเป็นอย่างไร?",opts:["อยู่นิ่ง เพราะมีแรงสองแรง","เร่งไปทางขวา เพราะแรงลัพธ์ 10 N ไปทางขวา","เร่งไปทางซ้าย เพราะคนที่สองออกแรงต้าน","เคลื่อนที่ด้วยความเร็วคงที่เสมอ"],a:1,ex:"แรงลัพธ์ = 30 − 20 = 10 N ไปทางขวา ตามกฎข้อที่ 2 วัตถุจะมีความเร่งไปทางขวา ไม่จำเป็นต้องคำนวณซับซ้อน แค่เปรียบเทียบแรงและทิศทาง"},
+ {round:2,roundName:"ROUND 2: REAL-LIFE MISSION",difficulty:"ปานกลาง",level:"medium",q:"ทำไมเข็มขัดนิรภัยจึงช่วยลดอันตรายเมื่อรถหยุดกะทันหัน?",opts:["ทำให้มวลของผู้โดยสารลดลง","ทำให้ผู้โดยสารไม่มีความเฉื่อย","ช่วยยึดร่างกายไม่ให้พุ่งไปข้างหน้าต่อ","เพิ่มแรงโน้มถ่วงภายในรถ"],a:2,ex:"เมื่อรถหยุด ร่างกายยังมีแนวโน้มเคลื่อนที่ต่อไปตามความเฉื่อย เข็มขัดนิรภัยออกแรงรั้งร่างกายให้ชะลอไปพร้อมรถ จึงช่วยลดโอกาสกระแทกส่วนต่าง ๆ ของรถ"},
+ {round:2,roundName:"ROUND 2: REAL-LIFE MISSION",difficulty:"ปานกลาง",level:"medium",q:"นักเรียนใช้แรงผลักกำแพง แต่กำแพงไม่เคลื่อนที่ ข้อใดอธิบายได้ถูกต้องที่สุด?",opts:["กำแพงไม่ออกแรงตอบสนองกลับ","แรงที่นักเรียนผลักกำแพงไม่มีอยู่จริง","กำแพงออกแรงตอบกลับเท่ากันและทิศตรงข้าม แต่แรงอื่น ๆ ทำให้กำแพงไม่เคลื่อนที่","กฎข้อที่ 3 ใช้ได้เฉพาะวัตถุที่เคลื่อนที่"],a:2,ex:"ตามกฎข้อที่ 3 กำแพงออกแรงต่อมือกลับด้วยขนาดเท่ากันและทิศตรงข้าม การที่กำแพงไม่เคลื่อนที่เกิดจากแรงลัพธ์ต่อกำแพงเป็นศูนย์หรือไม่มากพอให้เกิดการเคลื่อนที่ที่สังเกตได้"},
+ {round:2,roundName:"ROUND 2: REAL-LIFE MISSION",difficulty:"ยาก",level:"hard",q:"จักรยานกับรถบรรทุกเคลื่อนที่ด้วยความเร็วเท่ากัน แล้วเบรกพร้อมกันบนถนนสภาพเดียวกัน ข้อใดเป็นข้อสรุปที่เหมาะสมที่สุด?",opts:["รถบรรทุกต้องหยุดก่อน เพราะมวลมากกว่า","จักรยานต้องหยุดก่อนในทุกกรณี","สรุปไม่ได้จากมวลเพียงอย่างเดียว ต้องพิจารณาแรงเบรก แรงเสียดทาน และสภาพยางด้วย","ทั้งคู่หยุดพร้อมกันเสมอเพราะความเร็วเริ่มต้นเท่ากัน"],a:2,ex:"การหยุดขึ้นกับแรงลัพธ์ที่ทำให้เกิดความหน่วง รวมถึงแรงเสียดทานระหว่างยางกับถนนและระบบเบรก มวลเพียงอย่างเดียวหรือความเร็วเริ่มต้นเท่ากันยังไม่พอให้สรุปว่าใครหยุดก่อน"},
+ {round:3,roundName:"ROUND 3: BATTLE OF BRAINS",difficulty:"ปานกลาง",level:"medium",q:"นักเรียนยืนบนสเกตบอร์ดแล้วโยนลูกบอลไปข้างหน้า นักเรียนกับสเกตบอร์ดเคลื่อนถอยหลังเล็กน้อย เหตุการณ์นี้แสดงหลักการใดได้ชัดที่สุด?",opts:["กฎข้อที่ 1 เท่านั้น เพราะไม่มีแรง","กฎข้อที่ 2 เท่านั้น เพราะลูกบอลมีความเร่ง","กฎข้อที่ 3 แรงที่ใช้โยนลูกบอลมีแรงตอบสนองต่อผู้โยน","แรงโน้มถ่วงเปลี่ยนทิศเป็นแนวนอน"],a:2,ex:"มือออกแรงผลักลูกบอลไปข้างหน้า ขณะเดียวกันลูกบอลออกแรงตอบสนองต่อมือในทิศตรงข้าม ทำให้ผู้โยนและสเกตบอร์ดถอยหลัง นี่คือตัวอย่างของกฎข้อที่ 3"},
+ {round:3,roundName:"ROUND 3: BATTLE OF BRAINS",difficulty:"ยาก",level:"hard",q:"นักเรียนผลักรถเข็นมวลเท่าเดิมบนพื้นราบ ครั้งแรกออกแรง 10 N ครั้งที่สองออกแรง 20 N โดยแรงต้านเท่าเดิม ข้อใดถูกต้อง?",opts:["ความเร่งครั้งที่สองเป็นสองเท่าของครั้งแรกเสมอ ไม่ว่าแรงต้านจะเป็นเท่าใด","แรงลัพธ์ครั้งที่สองมากกว่าครั้งแรก และความเร่งมากขึ้น","รถเข็นมีความเร็วเพิ่มเป็นสองเท่าทันที","ความเร่งไม่เปลี่ยน เพราะมวลเท่าเดิม"],a:1,ex:"เมื่อแรงต้านคงเดิม การเพิ่มแรงผลักทำให้แรงลัพธ์เพิ่มขึ้น และเมื่อมวลคงเดิม กฎข้อที่ 2 ระบุว่า a = Fลัพธ์/m ดังนั้นความเร่งจึงมากขึ้น แต่จะเป็นสองเท่าพอดีหรือไม่ขึ้นกับขนาดแรงต้านด้วย"}
+];
+const L=["A","B","C","D"],COL=[0x42e8f5,0xff4d9d,0xffd166,0x54e39a],GX=[-4.5,-1.5,1.5,4.5],GZ=-12,A=14;
+const $=id=>document.getElementById(id),show=(id,on)=>$(id).classList.toggle("hidden",!on);
+const R=new THREE.WebGLRenderer({canvas:$("c"),antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));
+const S=new THREE.Scene();S.background=new THREE.Color(0x080d1d);S.fog=new THREE.Fog(0x080d1d,18,50);
+const cam=new THREE.PerspectiveCamera(60,1,.1,100);
+S.add(new THREE.AmbientLight(0x8899cc,.9));const pl=new THREE.PointLight(0xffffff,1.3,60);pl.position.set(0,8,4);S.add(pl);
+const fl=new THREE.Mesh(new THREE.PlaneGeometry(44,60),new THREE.MeshStandardMaterial({color:0x0e1730,roughness:.8}));fl.rotation.x=-Math.PI/2;fl.position.z=-10;S.add(fl);
+const gr=new THREE.GridHelper(60,30,0x42e8f5,0x24365e);gr.position.set(0,.02,-10);S.add(gr);
+const sp=[];for(let i=0;i<400;i++)sp.push((Math.random()-.5)*90,Math.random()*30+3,-Math.random()*70);
+const sg=new THREE.BufferGeometry();sg.setAttribute("position",new THREE.Float32BufferAttribute(sp,3));S.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:.15})));
+function label(t,c){const k=document.createElement("canvas");k.width=k.height=128;const x=k.getContext("2d");x.fillStyle="#"+c.toString(16).padStart(6,"0");x.font="bold 96px Tahoma";x.textAlign="center";x.textBaseline="middle";x.fillText(t,64,70);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(k),transparent:true}));s.scale.set(1.6,1.6,1);return s}
+const gates=GX.map((x,i)=>{const g=new THREE.Group();g.position.set(x,0,GZ);const m=new THREE.MeshStandardMaterial({color:COL[i],emissive:COL[i],emissiveIntensity:.6}),p=new THREE.BoxGeometry(.3,3,.3);
+const a=new THREE.Mesh(p,m),b=new THREE.Mesh(p,m),t=new THREE.Mesh(new THREE.BoxGeometry(2.6,.3,.3),m),pane=new THREE.Mesh(new THREE.PlaneGeometry(2.3,2.9),new THREE.MeshBasicMaterial({color:COL[i],transparent:true,opacity:.18,side:THREE.DoubleSide})),lb=label(L[i],COL[i]);
+a.position.set(-1.15,1.5,0);b.position.set(1.15,1.5,0);t.position.y=3.05;pane.position.y=1.5;lb.position.y=4.1;g.add(a,b,t,pane,lb);
+[a,b,t,pane,lb].forEach(o=>o.userData.gate=i);g.userData={m,pane,lb};S.add(g);return g});
+const cart=new THREE.Group(),body=new THREE.Mesh(new THREE.BoxGeometry(1.6,.7,2.2),new THREE.MeshStandardMaterial({color:0xffd166,metalness:.3,roughness:.4})),box=new THREE.Mesh(new THREE.BoxGeometry(1.1,.7,1.1),new THREE.MeshStandardMaterial({color:0xff4d9d}));
+body.position.y=.7;box.position.set(0,1.4,.2);cart.add(body,box);
+const wg=new THREE.CylinderGeometry(.35,.35,.25,16),wm=new THREE.MeshStandardMaterial({color:0x222a44});
+[[-.85,.35,-.7],[.85,.35,-.7],[-.85,.35,.7],[.85,.35,.7]].forEach(p=>{const w=new THREE.Mesh(wg,wm);w.rotation.z=Math.PI/2;w.position.set(...p);cart.add(w)});S.add(cart);
+let idx=0,score=0,tl=20,tid=null,locked=true,log=[],st="idle",vz=0,tgt=-1,res=null,shake=0;
+const clock=new THREE.Clock(),parts=[],ray=new THREE.Raycaster(),mp=new THREE.Vector2();
+const tint=(i,c)=>{const u=gates[i].userData;u.m.color.setHex(c);u.m.emissive.setHex(c);u.pane.material.color.setHex(c)};
+function burst(p,c){for(let i=0;i<50;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.18,.18,.18),new THREE.MeshBasicMaterial({color:c}));m.position.set(p.x+(Math.random()-.5)*2,Math.random()*3,p.z);m.userData.v=new THREE.Vector3((Math.random()-.5)*6,Math.random()*6,Math.random()*6+2);m.userData.l=1.2;S.add(m);parts.push(m)}}
+function start(){idx=0;score=0;log=[];$("score").textContent=0;show("start",0);show("result",0);show("hud",1);render()}
+function render(){clearInterval(tid);const q=questions[idx];locked=false;tl=20;st="idle";vz=0;shake=0;cart.position.set(0,0,5);gates.forEach((g,i)=>{g.visible=true;tint(i,COL[i])});
+$("rn").textContent=q.roundName;$("qc").textContent=`ข้อ ${idx+1}/${questions.length}`;$("qt").textContent=q.q;$("tm").textContent="⏱ "+tl;$("tm").classList.remove("low");$("phys").textContent="";show("fb",0);show("ans",1);
+const a=$("ans");a.innerHTML="";q.opts.forEach((o,i)=>{const b=document.createElement("button");b.className="ans";b.innerHTML=`<i>${L[i]}</i><span>${o}</span>`;b.onclick=()=>choose(i);a.appendChild(b)});
+tid=setInterval(()=>{tl--;$("tm").textContent="⏱ "+tl;if(tl<=5)$("tm").classList.add("low");if(tl<=0)choose(-1)},1000)}
+function choose(c){if(locked)return;locked=true;clearInterval(tid);const q=questions[idx],ok=c===q.a;
+document.querySelectorAll("button.ans").forEach((b,i)=>{b.disabled=true;if(i===q.a)b.classList.add("ok");if(i===c&&!ok)b.classList.add("no")});
+if(ok)score+=10;$("score").textContent=score;log.push({q,ok});res={ok,c};tgt=c;vz=0;if(c<0){st="done";finish()}else st="go"}
+function hit(){cart.position.z=GZ+1.4;if(res.ok){burst(gates[tgt].position,COL[tgt]);gates[tgt].visible=false;vz=-18;shake=.4}else{tint(tgt,0xff667d);vz=7;shake=.7}st="slide"}
+function finish(){const q=questions[idx],{ok,c}=res;tint(q.a,0x54e39a);if(!ok&&c>=0)tint(c,0xff667d);
+$("fb").className="card "+(ok?"good":"bad");show("ans",0);show("fb",1);
+$("fbt").textContent=ok?"⚡ จังหวะเยี่ยม! +10 คะแนน":c<0?"⏰ หมดเวลา! ไม่มีแรงผลัก รถจึงอยู่นิ่ง (กฎข้อ 1)":"💥 ชนแล้วเด้งกลับ! แรงปฏิกิริยาจากประตู (กฎข้อ 3)";
+$("fbe").innerHTML=(ok?"":`<b>เฉลย: ${L[q.a]}. ${q.opts[q.a]}</b><br>`)+q.ex;$("nx").textContent=idx===questions.length-1?"ดูผลคะแนน 🏁":"ข้อต่อไป →"}
+function results(){show("hud",0);show("fb",0);show("result",1);$("fs").textContent=score;let t,d;
+if(score>=90){t="🏆 FORCE MASTER";d="ยอดเยี่ยม! คุณเชื่อมโยงกฎของนิวตันกับสถานการณ์จริงได้อย่างเฉียบคม"}else if(score>=70){t="⚡ FORCE HERO";d="ทำได้ดีมาก! ทบทวนคำอธิบายอีกนิด แล้วคุณจะเก่งขึ้นอีก"}else if(score>=50){t="🧠 RISING THINKER";d="เริ่มจับหลักได้แล้ว ลองทบทวนแรงลัพธ์ ความเฉื่อย และแรงคู่กิริยา–ปฏิกิริยา"}else{t="🔧 TRAINING MODE";d="ทุกข้อที่พลาดคือโอกาสเรียนรู้ อ่านเฉลยแล้วลองเล่นใหม่อีกครั้ง!"}
+$("rt").textContent=t;$("rx").textContent=d;$("rl").innerHTML=log.map((r,i)=>`<div><b style="color:${r.ok?"#54e39a":"#ff667d"}">ข้อ ${i+1} ${r.ok?"✓":"✗"}</b> ${r.q.q}<br><span style="color:#a9b7d5">เฉลย: ${L[r.q.a]}. ${r.q.opts[r.q.a]}</span></div>`).join("")}
+$("sb").onclick=start;$("rb").onclick=start;$("nx").onclick=()=>{idx++;idx>=questions.length?results():render()};
+function pick(e){const r=R.domElement.getBoundingClientRect();mp.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(mp,cam);const h=ray.intersectObjects(gates.filter(g=>g.visible),true).find(x=>x.object.userData.gate!==undefined);return h?h.object.userData.gate:-1}
+R.domElement.addEventListener("pointermove",e=>{R.domElement.style.cursor=!locked&&pick(e)>=0?"pointer":"default"});
+R.domElement.addEventListener("pointerdown",e=>{if(locked||st!=="idle")return;const i=pick(e);if(i>=0)choose(i)});
+addEventListener("keydown",e=>{const k=Math.max("ABCD".indexOf(e.key.toUpperCase()),"1234".indexOf(e.key));if(k>=0&&!locked&&st==="idle")choose(k)});
+function resize(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.fov=w/h<1?78:60;cam.updateProjectionMatrix()}addEventListener("resize",resize);resize();
+function tick(){requestAnimationFrame(tick);const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;
+gates.forEach((g,i)=>g.userData.lb.position.y=4.1+Math.sin(t*2+i)*.12);
+if(st==="idle")cart.position.y=Math.sin(t*3)*.04;
+if(st==="go"){vz-=A*dt;cart.position.z+=vz*dt;cart.position.x+=(GX[tgt]-cart.position.x)*Math.min(1,dt*4);$("phys").textContent=`a = F/m • v = ${Math.abs(vz).toFixed(1)} m/s`;if(cart.position.z<=GZ+1.4)hit()}
+else if(st==="slide"){cart.position.z+=vz*dt;vz*=1-dt*3;if(Math.abs(vz)<.5){st="done";$("phys").textContent="";finish()}}
+for(let i=parts.length-1;i>=0;i--){const p=parts[i],u=p.userData;u.v.y-=12*dt;p.position.addScaledVector(u.v,dt);u.l-=dt;p.scale.setScalar(Math.max(u.l,0));if(u.l<=0){S.remove(p);parts.splice(i,1)}}
+const cx=cart.position.x*.35;cam.position.set(cx+(Math.random()-.5)*shake,4.2+(Math.random()-.5)*shake,11);cam.lookAt(cx*.6,1.6,-4);shake*=1-dt*4;R.render(S,cam)}
+tick();
+</script></body></html>
